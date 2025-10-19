@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Event</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .hidden { display: none; }
+    .success { color: green; font-weight: bold; }
+    .error { color: red; font-weight: bold; }
+    .wait { color: blue; font-weight: bold; }
+    label { display: block; margin-top: 8px; }
+    input, textarea { width: 100%; padding: 6px; margin-top: 4px; }
+    button { margin-top: 12px; padding: 8px 14px; cursor: pointer; }
+    #logoutBtn { background: red; color: white; border: none; padding: 6px 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <h2>Create Event Dashboard</h2>
+
+  <!-- Login Form -->
+  <div id="loginSection">
+    <h3>Login</h3>
+    <label>National ID: <input type="text" id="loginId"></label>
+    <label>Password: <input type="password" id="loginPassword"></label>
+    <button onclick="doLogin()">Login</button>
+    <p id="loginMsg"></p>
+  </div>
+
+  <!-- Event Form Section -->
+  <div id="eventSection" class="hidden">
+    <div>
+      <button id="logoutBtn" onclick="doLogout()">Log Out</button>
+    </div>
+    <p><strong>Welcome:</strong> <span id="userName"></span>  
+       (<span id="userId"></span>) | Credits: <span id="userCredits"></span></p>
+
+    <h3>Create New Event</h3>
+    <label>Title: <input type="text" id="eventTitle"></label>
+    <label>Description: <textarea id="eventDesc"></textarea></label>
+    <label>Event Date: <input type="date" id="eventDate"></label>
+    <label>Venue: <input type="text" id="eventVenue"></label>
+    <button onclick="submitEvent()">Create Event</button>
+    <p id="eventMsg"></p>
+  </div>
+
+  <script>
+    const WORKER_URL = "https://nameless-frog-bc11.ev-dmaundu.workers.dev/";
+    let loggedUser = null; // will store { nationalId, password, name, credits }
+
+    async function doLogin() {
+      const id = document.getElementById("loginId").value.trim();
+      const pw = document.getElementById("loginPassword").value.trim();
+
+      if (!id || !pw) {
+        document.getElementById("loginMsg").textContent = "Please enter National ID and Password";
+        document.getElementById("loginMsg").className = "error";
+        return;
+      }
+
+      document.getElementById("loginMsg").textContent = "Wait please...";
+      document.getElementById("loginMsg").className = "wait";
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "login", nationalId: id, password: pw })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          loggedUser = { 
+            nationalId: id, 
+            password: pw, 
+            name: data.user.name, 
+            credits: data.user.credits 
+          };
+          // update UI
+          document.getElementById("loginSection").classList.add("hidden");
+          document.getElementById("eventSection").classList.remove("hidden");
+          document.getElementById("userName").textContent = data.user.name;
+          document.getElementById("userId").textContent = data.user.nationalId;
+          document.getElementById("userCredits").textContent = data.user.credits;
+          document.getElementById("loginMsg").textContent = "";
+        } else {
+          document.getElementById("loginMsg").textContent = data.message || "Login failed";
+          document.getElementById("loginMsg").className = "error";
+        }
+      } catch (err) {
+        document.getElementById("loginMsg").textContent = "Error: " + err.toString();
+        document.getElementById("loginMsg").className = "error";
+      }
+    }
+
+    async function submitEvent() {
+      if (!loggedUser) {
+        alert("Please log in first.");
+        return;
+      }
+
+      const eventData = {
+        action: "addEvent",
+        nationalId: loggedUser.nationalId,
+        password: loggedUser.password,
+        title: document.getElementById("eventTitle").value.trim(),
+        description: document.getElementById("eventDesc").value.trim(),
+        eventDate: document.getElementById("eventDate").value,
+        venue: document.getElementById("eventVenue").value.trim()
+      };
+
+      document.getElementById("eventMsg").textContent = "Wait please...";
+      document.getElementById("eventMsg").className = "wait";
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(eventData)
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          document.getElementById("eventMsg").textContent = data.message;
+          document.getElementById("eventMsg").className = "success";
+          // clear form
+          document.getElementById("eventTitle").value = "";
+          document.getElementById("eventDesc").value = "";
+          document.getElementById("eventDate").value = "";
+          document.getElementById("eventVenue").value = "";
+        } else {
+          document.getElementById("eventMsg").textContent = data.message;
+          document.getElementById("eventMsg").className = "error";
+        }
+      } catch (err) {
+        document.getElementById("eventMsg").textContent = "Error: " + err.toString();
+        document.getElementById("eventMsg").className = "error";
+      }
+    }
+
+    function doLogout() {
+      loggedUser = null;
+      document.getElementById("loginSection").classList.remove("hidden");
+      document.getElementById("eventSection").classList.add("hidden");
+      document.getElementById("loginMsg").textContent = "";
+      document.getElementById("eventMsg").textContent = "";
+      document.getElementById("loginId").value = "";
+      document.getElementById("loginPassword").value = "";
+    }
+  </script>
+</body>
+</html>
