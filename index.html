@@ -5,23 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create Event</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f6fa;
+      margin: 0;
+      padding: 0;
+    }
+    h2, h3 { text-align: center; }
+    .container {
+      max-width: 500px;
+      margin: 50px auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
     .hidden { display: none; }
     .success { color: green; font-weight: bold; }
     .error { color: red; font-weight: bold; }
     .wait { color: blue; font-weight: bold; }
-    label { display: block; margin-top: 8px; }
-    input, textarea { width: 100%; padding: 6px; margin-top: 4px; }
-    button { margin-top: 12px; padding: 8px 14px; cursor: pointer; }
-    #logoutBtn { background: red; color: white; border: none; padding: 6px 10px; cursor: pointer; }
+    label { display: block; margin-top: 12px; font-weight: bold; }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background: #3498db;
+      color: #fff;
+      font-weight: bold;
+      width: 100%;
+      transition: 0.3s;
+    }
+    button:hover { background: #2980b9; }
+    #logoutBtn { background: red; color: white; width: auto; padding: 6px 12px; margin-bottom: 10px; }
+    .user-info { margin: 15px 0; font-size: 16px; }
+    .user-name { color: green; font-weight: bold; }
+    .user-credits { color: red; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <h2>Create Event Dashboard</h2>
-
-  <!-- Login Form -->
-  <div id="loginSection">
+  <div class="container" id="loginSection">
+    <h2>Create Event Dashboard</h2>
     <h3>Login</h3>
     <label>National ID: <input type="text" id="loginId"></label>
     <label>Password: <input type="password" id="loginPassword"></label>
@@ -29,13 +63,14 @@
     <p id="loginMsg"></p>
   </div>
 
-  <!-- Event Form Section -->
-  <div id="eventSection" class="hidden">
-    <div>
+  <div class="container hidden" id="eventSection">
+    <div style="text-align: right;">
       <button id="logoutBtn" onclick="doLogout()">Log Out</button>
     </div>
-    <p><strong>Welcome:</strong> <span id="userName"></span>  
-       (<span id="userId"></span>) | Credits: <span id="userCredits"></span></p>
+    <div class="user-info">
+      Welcome: <span class="user-name" id="userName"></span>  
+      (<span id="userId"></span>) | Credits: <span class="user-credits" id="userCredits"></span>
+    </div>
 
     <h3>Create New Event</h3>
     <label>Title: <input type="text" id="eventTitle"></label>
@@ -48,17 +83,12 @@
 
   <script>
     const WORKER_URL = "https://nameless-frog-bc11.ev-dmaundu.workers.dev/";
-    let loggedUser = null; // stores { nationalId, password, name, credits }
+    let loggedUser = null;
 
     async function doLogin() {
       const id = document.getElementById("loginId").value.trim();
       const pw = document.getElementById("loginPassword").value.trim();
-
-      if (!id || !pw) {
-        showMessage("loginMsg", "Please enter National ID and Password", "error");
-        return;
-      }
-
+      if (!id || !pw) { showMessage("loginMsg", "Please enter National ID and Password", "error"); return; }
       showMessage("loginMsg", "Wait please...", "wait");
 
       try {
@@ -67,10 +97,8 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "login", nationalId: id, password: pw })
         });
-
         let data;
-        try { data = await res.json(); } 
-        catch { data = { success: false, message: "Invalid response from server" }; }
+        try { data = await res.json(); } catch { data = { success: false, message: "Invalid response from server" }; }
 
         if (data.success) {
           loggedUser = { nationalId: id, password: pw, name: data.user.name, credits: data.user.credits };
@@ -83,17 +111,11 @@
         } else {
           showMessage("loginMsg", data.message || "Login failed", "error");
         }
-      } catch (err) {
-        showMessage("loginMsg", "Error: " + err.toString(), "error");
-      }
+      } catch (err) { showMessage("loginMsg", "Error: " + err.toString(), "error"); }
     }
 
     async function submitEvent() {
-      if (!loggedUser) {
-        alert("Please log in first.");
-        return;
-      }
-
+      if (!loggedUser) { alert("Please log in first."); return; }
       const eventData = {
         action: "addEvent",
         nationalId: loggedUser.nationalId,
@@ -103,7 +125,6 @@
         eventDate: document.getElementById("eventDate").value,
         venue: document.getElementById("eventVenue").value.trim()
       };
-
       showMessage("eventMsg", "Wait please...", "wait");
 
       try {
@@ -112,10 +133,8 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(eventData)
         });
-
         let data;
-        try { data = await res.json(); } 
-        catch { data = { success: false, message: "Invalid response from server" }; }
+        try { data = await res.json(); } catch { data = { success: false, message: "Invalid response from server" }; }
 
         if (data.success) {
           showMessage("eventMsg", data.message, "success");
@@ -126,9 +145,7 @@
         } else {
           showMessage("eventMsg", data.message, "error");
         }
-      } catch (err) {
-        showMessage("eventMsg", "Error: " + err.toString(), "error");
-      }
+      } catch (err) { showMessage("eventMsg", "Error: " + err.toString(), "error"); }
     }
 
     function doLogout() {
